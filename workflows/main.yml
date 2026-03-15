@@ -1,0 +1,49 @@
+name: Main workflow
+on:
+  push:
+    branches:
+      - main
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Flyway repair
+      uses: docker://flyway/flyway:10
+      with:
+        args: >-
+          -url=jdbc:postgresql://${{ secrets.DB_HOST }}:${{ secrets.DB_PORT }}/${{ secrets.DB_NAME }}
+          -user=${{ secrets.DB_USER }}
+          -password=${{ secrets.DB_PASSWORD }}
+          -locations=filesystem:/github/workspace/migrations
+          repair
+
+    - name: Flyway migrate
+      uses: docker://flyway/flyway:10
+      with:
+        args: >-
+          -url=jdbc:postgresql://${{ secrets.DB_HOST }}:${{ secrets.DB_PORT }}/${{ secrets.DB_NAME }}
+          -user=${{ secrets.DB_USER }}
+          -password=${{ secrets.DB_PASSWORD }}
+          -locations=filesystem:/github/workspace/migrations
+          migrate
+
+    ### Этот шаг оставьте без изменений
+    - name: Download and setup autotests binaries
+      run: |
+        wget -qO- cloud-services-engineer.gitlab.yandexcloud.net/practicum-cloud-services/dbops-autotests/-/package_files/1/download > dbopstest
+        chmod +x ./dbopstest
+        mv ./dbopstest /usr/local/bin/dbopstest
+
+    ### Этот шаг оставьте без изменений
+    - name: Test
+      run: |
+        dbopstest \
+          -test.v \
+          -host=${{ secrets.DB_HOST }} \
+          -port=${{ secrets.DB_PORT }} \
+          -user=${{ secrets.DB_USER }} \
+          -password=${{ secrets.DB_PASSWORD }} \
+          -db=${{ secrets.DB_NAME }}
