@@ -10,7 +10,25 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    #### Добавьте шаг с Flyway-миграциями
+    - name: Flyway repair
+      uses: docker://flyway/flyway:10
+      with:
+        args: >-
+          -url=jdbc:postgresql://${{ secrets.DB_HOST }}:${{ secrets.DB_PORT }}/${{ secrets.DB_NAME }}
+          -user=${{ secrets.DB_USER }}
+          -password=${{ secrets.DB_PASSWORD }}
+          -locations=filesystem:/github/workspace/migrations
+          repair
+
+    - name: Flyway migrate
+      uses: docker://flyway/flyway:10
+      with:
+        args: >-
+          -url=jdbc:postgresql://${{ secrets.DB_HOST }}:${{ secrets.DB_PORT }}/${{ secrets.DB_NAME }}
+          -user=${{ secrets.DB_USER }}
+          -password=${{ secrets.DB_PASSWORD }}
+          -locations=filesystem:/github/workspace/migrations
+          migrate
 
     ### Этот шаг оставьте без изменений
     - name: Download and setup autotests binaries
